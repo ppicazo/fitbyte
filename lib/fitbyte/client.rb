@@ -37,17 +37,37 @@ module Fitbyte
       @raw_response = opts[:raw_response]
 
       @client = OAuth2::Client.new(@client_id, @client_secret, site: @site_url,
-                                   authorize_url: @authorize_url, token_url: @token_url)
+        authorize_url: @authorize_url, token_url: @token_url)
+    end
+
+    def id
+      @client_id
+    end
+
+    def secret
+      @client_secret
     end
 
     def auth_page_link
       @client.auth_code.authorize_url(redirect_uri: @redirect_uri, scope: @scope)
     end
 
-    def get_token(auth_code)
+    def get_token_initial(auth_code)
       @token = @client.auth_code.get_token(auth_code, redirect_uri: @redirect_uri, headers: auth_header)
       @user_id = @token.params["user_id"]
       return @token
+    end
+
+    def get_token(params)
+      @token = @client.get_token(params.merge(headers: auth_header))
+      @user_id = @token.params["user_id"]
+      return @token
+    end
+
+
+    def set_token(token)
+      @token = token
+      @user_id = @token.params["user_id"]
     end
 
     def token
@@ -59,7 +79,7 @@ module Fitbyte
     end
 
     def auth_header
-      {"Authorization" => ("Basic " + Base64.encode64(@client_id + ":" + @client_secret))}
+      { "Authorization" => ("Basic " + Base64.encode64(@client_id + ":" + @client_secret)) }
     end
 
     def request_headers
@@ -68,6 +88,10 @@ module Fitbyte
         "Accept-Language" => @unit_system,
         "Accept-Locale" => @locale
       }
+    end
+
+    def request(verb, path, opts, &block)
+      @client.request(verb, path, opts, &block)
     end
 
     def get(path, opts={})
